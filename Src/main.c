@@ -74,7 +74,8 @@ void vApplicationIdleHook( void )
 osThreadId GetDataThreadId, WriteDataThreadId;
 
 osMessageQId dataQueue_id;
-osMessageQDef(dataqueue, DATAQUEUE_SIZE, int);
+//osMessageQDef(dataqueue, DATAQUEUE_SIZE, int);
+osMessageQDef(dataqueue, 1, int);
 
 osPoolId sensorPool_id;
 osPoolDef(sensorPool, DATAQUEUE_SIZE, T_SensorsData);
@@ -226,13 +227,17 @@ static void GetData_Thread(void const *argument)
     else
     {
       /* Try to allocate a memory block and check if is not NULL */
-      mptr = osPoolAlloc(sensorPool_id);                                        // Memory allocation
+     // mptr = osPoolAlloc(sensorPool_id);                                        // Memory allocation
+      T_SensorsData T_SensorsData2 ;
+      mptr = &T_SensorsData2;                                        
+      getSensorsData(mptr);
+      uint16_t temp = mptr->acc.x;
       if(mptr != NULL)
       {
         if(getSensorsData(mptr) == BSP_ERROR_NONE)
         {
           /* Push the new memory Block in the Data Queue */
-          if(osMessagePut(dataQueue_id, (uint32_t)mptr, osWaitForever) != osOK)
+          if(osMessagePut(dataQueue_id, temp, osWaitForever) != osOK)
           {
             Error_Handler();
           }     
@@ -262,7 +267,8 @@ static void WriteData_Thread(void const *argument)
   UBaseType_t uxHighWaterMark;
   uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
   osEvent evt;
-  T_SensorsData *rptr;
+  //T_SensorsData *rptr;
+  uint16_t *rptr;
   int size;
   char data_s[256];
   
@@ -305,13 +311,15 @@ static void WriteData_Thread(void const *argument)
 
         if(LoggingInterface == USB_Datalog)
         {
-          size = sprintf(data_s, "TimeStamp: %ld\r\n Acc_X: %d, Acc_Y: %d, Acc_Z :%d\r\n Gyro_X:%d, Gyro_Y:%d, Gyro_Z:%d\r\n Magn_X:%d, Magn_Y:%d, Magn_Z:%d\r\n Press:%5.2f, Temp:%5.2f, Hum:%4.1f\r\n",
-                       rptr->ms_counter,
-                       (int)rptr->acc.x, (int)rptr->acc.y, (int)rptr->acc.z,
-                       (int)rptr->gyro.x, (int)rptr->gyro.y, (int)rptr->gyro.z,
-                       (int)rptr->mag.x, (int)rptr->mag.y, (int)rptr->mag.z,
-                       rptr->pressure, rptr->temperature, rptr->humidity);
-          osPoolFree(sensorPool_id, rptr);      // free memory allocated for message
+//          size = sprintf(data_s, "TimeStamp: %ld\r\n Acc_X: %d, Acc_Y: %d, Acc_Z :%d\r\n Gyro_X:%d, Gyro_Y:%d, Gyro_Z:%d\r\n Magn_X:%d, Magn_Y:%d, Magn_Z:%d\r\n Press:%5.2f, Temp:%5.2f, Hum:%4.1f\r\n",
+//                       rptr->ms_counter,
+//                       (int)rptr->acc.x, (int)rptr->acc.y, (int)rptr->acc.z,
+//                       (int)rptr->gyro.x, (int)rptr->gyro.y, (int)rptr->gyro.z,
+//                       (int)rptr->mag.x, (int)rptr->mag.y, (int)rptr->mag.z,
+//                       rptr->pressure, rptr->temperature, rptr->humidity);
+          //size = sprintf(data_s,"%d\r\n",(int)rptr->acc.x);
+          size = sprintf(data_s,"%d\r\n",(int)rptr);
+          //osPoolFree(sensorPool_id, rptr);      // free memory allocated for message
           BSP_LED_Toggle(LED1);
           CDC_Fill_Buffer(( uint8_t * )data_s, size);
           //HAL_Delay(500);
@@ -321,14 +329,14 @@ static void WriteData_Thread(void const *argument)
         }
         else
         {
-          size = sprintf(data_s, "%ld, %d, %d, %d, %d, %d, %d, %d, %d, %d, %5.2f, %5.2f, %4.1f\r\n",
-                       rptr->ms_counter,
-                       (int)rptr->acc.x, (int)rptr->acc.y, (int)rptr->acc.z,
-                       (int)rptr->gyro.x, (int)rptr->gyro.y, (int)rptr->gyro.z,
-                       (int)rptr->mag.x, (int)rptr->mag.y, (int)rptr->mag.z,
-                       rptr->pressure, rptr->temperature, rptr->humidity);
-          osPoolFree(sensorPool_id, rptr);      // free memory allocated for message
-          DATALOG_SD_writeBuf(data_s, size);
+//          size = sprintf(data_s, "%ld, %d, %d, %d, %d, %d, %d, %d, %d, %d, %5.2f, %5.2f, %4.1f\r\n",
+//                       rptr->ms_counter,
+//                       (int)rptr->acc.x, (int)rptr->acc.y, (int)rptr->acc.z,
+//                       (int)rptr->gyro.x, (int)rptr->gyro.y, (int)rptr->gyro.z,
+//                       (int)rptr->mag.x, (int)rptr->mag.y, (int)rptr->mag.z,
+//                       rptr->pressure, rptr->temperature, rptr->humidity);
+//          osPoolFree(sensorPool_id, rptr);      // free memory allocated for message
+//          DATALOG_SD_writeBuf(data_s, size);
         }
       }
     }
