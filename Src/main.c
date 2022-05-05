@@ -95,6 +95,7 @@ volatile uint8_t no_T_HTS221 = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 static void GetData_Thread(void const *argument);
+static void Getadc_Thread(void const *argument);
 static void WriteData_Thread(void const *argument);
 
 static void Error_Handler( void );
@@ -157,12 +158,18 @@ int main(void)
   /* Thread 2 definition */
   osThreadDef(THREAD_2, WriteData_Thread, osPriorityNormal, 0, configMINIMAL_STACK_SIZE*4);
   
+  /* Thread 3 definition */
+  osThreadDef(THREAD_3, Getadc_Thread, osPriorityNormal, 0, configMINIMAL_STACK_SIZE*4);
+
   /* Start thread 1 */
   GetDataThreadId = osThreadCreate(osThread(THREAD_1), NULL);
 
   /* Start thread 2 */
   WriteDataThreadId = osThreadCreate(osThread(THREAD_2), NULL);  
   
+  /* Start thread 3 */
+  WriteDataThreadId = osThreadCreate(osThread(THREAD_3), NULL);  
+
   /* Start scheduler */
   osKernelStart();
 
@@ -252,8 +259,40 @@ static void GetData_Thread(void const *argument)
         Error_Handler();
       }
     }
+    osDelay(1000);
+  }
+   
+}
+
+static void Getadc_Thread(void const *argument)
+{
+  (void) argument;
+//  T_SensorsData *mptr;
+//  
+//  sensorPool_id = osPoolCreate(osPool(sensorPool));     
+//  dataQueue_id = osMessageCreate(osMessageQ(dataqueue), NULL);
+//
+//  readDataSem2_id = osSemaphoreCreate(osSemaphore(readDataSem), 1);
+//  osSemaphoreWait(readDataSem2_id, osWaitForever);
+  
+  osSemaphoreRelease(readDataSem2_id);
+  for (;;)
+  {
+    
+    osSemaphoreWait(readDataSem2_id, osWaitForever);
+    uint16_t temp = 10;
+    
+    
+      /* Push the new memory Block in the Data Queue */
+      if(osMessagePut(dataQueue_id, temp, osWaitForever) != osOK)
+      {
+        Error_Handler();
+      }     
+
+    
   }
 }
+
 
 
 /**
@@ -323,7 +362,7 @@ static void WriteData_Thread(void const *argument)
           BSP_LED_Toggle(LED1);
           CDC_Fill_Buffer(( uint8_t * )data_s, size);
           //HAL_Delay(500);
-          osDelay(500);
+          osDelay(200);
           uxHighWaterMark = uxTaskGetStackHighWaterMark( NULL );
           osSemaphoreRelease(readDataSem2_id);
         }
